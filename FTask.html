@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+
+        <h1>Notes Management </h1>
+
+        <input type="text" id="name" placeholder="Full Name">
+
+        <input type="email" id="email" placeholder="Email">
+
+        <input type="password" id="password" placeholder="Password">
+
+        <button onclick="register()">Create Account</button>
+
+        <p>
+            Already have an account?
+            <a href="login.html">Sign In</a>
+        </p>
+
+    </div>
+
+</div>
+
+<script>
+
+async function register() {
+
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    if(name === "" || email === "" || password === ""){
+        alert("Please fill all fields");
+        return;
+    }
+
+    try {
+
+        const response = await fetch("http://localhost:5000/register", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                name,
+                email,
+                password
+            })
+
+        });
+
+        const data = await response.text();
+
+        alert(data);
+
+        if(data === "User Registered Successfully"){
+            window.location.href = "login.html";
+        }
+
+    } catch(error) {
+
+        console.log(error);
+        alert("Server Error");
+
+    }
+}
+
+</script>
+
+</body>
+</html>

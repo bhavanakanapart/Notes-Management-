@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Notes Dashboard</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#ebc3f1;
+}
+
+.container{
+    display:flex;
+    height:100vh;
+}
+
+/* Sidebar */
+.sidebar{
+    width:300px;
+    background:rgb(238, 238, 234);
+    border-right:1px solid #e2a5a5;
+    padding:20px;
+    overflow-y:auto;
+}
+
+.sidebar h2{
+    margin-bottom:20px;
+}
+
+.note-item{
+    padding:12px;
+    border:1px solid #cadee3;
+    border-radius:8px;
+    margin-bottom:10px;
+    cursor:pointer;
+}
+
+.note-item:hover{
+    background:#b6b9c0;
+}
+
+/* Editor */
+.editor{
+    flex:1;
+    padding:30px;
+}
+
+.card{
+    background:rgb(232, 240, 223);
+    padding:30px;
+    border-radius:12px;
+    height:100%;
+}
+
+.info{
+    color:#9f8f8f;
+    margin-bottom:20px;
+}
+
+label{
+    display:block;
+    margin-top:30px;
+    margin-bottom:20px;
+    font-weight:bold;
+    color:#070303;
+}
+
+input,textarea{
+    width:100%;
+    padding:12px;
+    border:1px solid #eebbcc;
+    border-radius:8px;
+}
+
+textarea{
+    height:300px;
+    resize:none;
+}
+
+.actions{
+    margin-top:25px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.btn{
+    padding:12px 20px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.delete{
+    background:rgb(147, 198, 225);
+    color:rgb(23, 11, 11);
+    border:1px solid rgb(73, 175, 212);
+}
+
+.cancel{
+    background:#bdb3b3;
+    margin-right:10px;
+}
+
+.save{
+    background:#2563eb;
+    color:white;
+}
+
+.new-btn{
+    width:100%;
+    margin-bottom:20px;
+    background:#2563eb;
+    color:white;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+.logout-btn{
+    width:100%;
+    margin-bottom:20px;
+    background:#ef4444;
+    color:white;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.logout-btn:hover{
+    background:#dc2626;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+    <h2>Notes Manager</h2>
+
+    <button class="new-btn" onclick="newNote()">
+        + New Note
+    </button>
+
+    <button class="logout-btn" onclick="logout()">
+        Sign Out
+    </button>
+
+    <div id="notesList"></div>
+
+</div>
+
+    <!-- Editor -->
+    <div class="editor">
+
+        <div class="card">
+
+            <h2>Edit Note</h2>
+
+            <p class="info" id="noteInfo">
+                Select a note
+            </p>
+
+            <label>TITLE</label>
+            <input type="text" id="title">
+
+            <label>CONTENT</label>
+            <textarea id="content"></textarea>
+
+            <div class="actions">
+
+                <button class="btn delete"
+                        onclick="deleteCurrentNote()">
+                    Delete Note
+                </button>
+
+                <div>
+                    <button class="btn cancel"
+                            onclick="newNote()">
+                        Cancel
+                    </button>
+
+                    <button class="btn save"
+                            onclick="saveOrUpdateNote()">
+                        Save Changes
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    const userId = localStorage.getItem("userId");
+
+if(!userId){
+    window.location.href = "login.html";
+}
+
+let selectedNoteId = null;
+
+// Load Notes
+async function loadNotes(){
+
+    const userId = localStorage.getItem("userId");
+
+    const response =
+        await fetch(`http://localhost:5000/notes/${userId}`);
+
+    const notes = await response.json();
+
+    let html = "";
+
+    notes.forEach(note => {
+
+        html += `
+        <div class="note-item"
+             onclick="openNote(
+                ${note.id},
+                '${note.title.replace(/'/g,"\\'")}',
+                \`${note.content}\`
+             )">
+
+            <strong>${note.title}</strong>
+
+        </div>
+        `;
+    });
+
+    document.getElementById("notesList").innerHTML = html;
+}
+
+// Open Note
+function openNote(id,title,content){
+
+    selectedNoteId = id;
+
+    document.getElementById("title").value = title;
+    document.getElementById("content").value = content;
+
+    document.getElementById("noteInfo").innerText =
+        "Editing Note ID: " + id;
+}
+
+// New Note
+function newNote(){
+
+    selectedNoteId = null;
+
+    document.getElementById("title").value = "";
+    document.getElementById("content").value = "";
+
+    document.getElementById("noteInfo").innerText =
+        "Create New Note";
+}
+
+// Save or Update
+async function saveOrUpdateNote(){
+
+    const title =
+        document.getElementById("title").value;
+
+    const content =
+        document.getElementById("content").value;
+
+    const userId =
+        localStorage.getItem("userId");
+
+    if(title === "" || content === ""){
+        alert("Fill all fields");
+        return;
+    }
+
+    if(selectedNoteId){
+
+        await fetch(
+            "http://localhost:5000/updatenote",
+            {
+                method:"PUT",
+                headers:{
+                    "Content-Type":"application/json"
+                },
+                body:JSON.stringify({
+                    id:selectedNoteId,
+                    title,
+                    content
+                })
+            }
+        );
+
+    }else{
+
+        await fetch(
+            "http://localhost:5000/createnote",
+            {
+                method:"POST",
+                headers:{
+                    "Content-Type":"application/json"
+                },
+                body:JSON.stringify({
+                    title,
+                    content,
+                    user_id:userId
+                })
+            }
+        );
+    }
+
+    newNote();
+    loadNotes();
+}
+
+// Delete
+async function deleteCurrentNote(){
+
+    if(!selectedNoteId){
+        alert("Select a note first");
+        return;
+    }
+
+    await fetch(
+        `http://localhost:5000/deletenote/${selectedNoteId}`,
+        {
+            method:"DELETE"
+        }
+    );
+
+    newNote();
+    loadNotes();
+}
+
+function logout(){
+
+    localStorage.removeItem("userId");
+
+    alert("Logged Out Successfully");
+
+    window.location.href = "login.html";
+}
+
+window.onload = loadNotes;
+
+</script>
+
+</body>
+</html>
